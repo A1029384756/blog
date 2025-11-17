@@ -2,7 +2,7 @@
   "imports": {
     "lume/": "https://deno.land/x/lume@v2.4.3/",
     "lume/cms/": "https://cdn.jsdelivr.net/gh/lumeland/cms@0.8.0/",
-    "prismjs": "npm:prismjs@^1.29.0"
+    "prismjs": "npm:prismjs@^1.30.0"
   },
   "tasks": {
     "lume": "echo \"import 'lume/cli.ts'\" | deno run -A -",
