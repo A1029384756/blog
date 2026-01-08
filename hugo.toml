@@ -1,3 +1,53 @@
-baseURL = 'https://example.org/'
+baseURL = 'https://cstring.dev/'
 languageCode = 'en-us'
-title = 'My New Hugo Site'
+title = 'cstring.dev'
+theme = 'hugo-PaperMod'
+enableRobotsTXT = true
+enableInlineShortcodes = true
+
+[minify]
+disableXML = true
+minifyOutput = true
+
+[params]
+env = 'production'
+title = 'cstring'
+description = 'Nerd Stuff'
+author = 'Hayden Gray'
+ShowReadingTime = true
+ShowShareButtons = true
+ShowCodeCopyButtons = true
+DisableSpecial1stPost = true
+ShowToc = true
+
+[params.homeInfoParams]
+Title = 'Systems Programming, Game Dev, and DevOps'
+Content = "I'm Hayden Gray, a DevOps engineer, low-level programming hobbyist, and Linux nerd."
+
+[params.asssets]
+disableFingerPrinting = true
+
+[[params.socialIcons]]
+name = 'github'
+url = 'https://github.com/A1029384756'
+[[params.socialIcons]]
+name = 'youtube'
+url = 'https://www.youtube.com/@HaydenGray'
+[[params.socialIcons]]
+name = 'email'
+url = 'mailto:hayden.gray104@gmail.com'
+
+[[menu.main]]
+identifier = 'tags'
+name = 'tags'
+url = '/tags/'
+weight = 20
+
+[[menu.main]]
+identifier = 'cstring'
+name = 'cstring.dev'
+url = 'https://cstring.dev'
+weight = 30
+
+[markup.highlight]
+noClasses = false
