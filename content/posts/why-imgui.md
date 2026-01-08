@@ -118,8 +118,8 @@ component OperatorButton: CalculatorButton {
 > From the [QT Calculator Demo](https://code.qt.io/cgit/qt/qtdoc.git/tree/examples/demos/calqlatr?h=6.10)
 
 Here, the widget logic and component code are placed directly next to one
-another, improving the locality of behavior. However, the model of "object"
-with properties is still maintained. There also seems to be very little actual
+another, improving the locality of behavior. However, the model of "object
+with properties" is still maintained. There also seems to be very little actual
 *application* logic contained in the click handler, why is that? 
 Well, the thing is, even with this more contained approach where the 
 description of widgets and their internal logic are placed next to one another, 
@@ -318,7 +318,7 @@ is instead more desirable, where state is retained for reuse in future frames bu
 is only maintained for that frame. This often leads to another question: isn't it expensive to rebuild
 the widget tree every frame? The short answer is: it depends. The longer answer is, if the application
 is programmed well, the cost of building the tree and running layout can be measured in microseconds.
-The more expensive approach instead is the *rendering* of the UI and as such, frameworks that are more
+The more expensive step is instead the *rendering* of the UI and as such, frameworks that are more
 immediate in their *implementations* should instead strive to minimize their number of spurious rerenders.
 > An example of how to do this can be found in [this post](https://rxi.github.io/cached_software_rendering.html)
   by rxi. Although it specifies software rendering, the approach can be expanded to hardware rendering as
@@ -330,7 +330,7 @@ of widget code running per frame. The goal here is to minimize the amount of wid
 for widgets that cannot be seen. The most relevant example of this is for long lists. As expected, if a
 list is many thousands of items long, running UI code for each of those elements will be extremely expensive,
 especially since most of those elements will never be on screen. Instead, you should *virtualize* the 
-scrolling, only running the UI code for the subset of widgets you see on screen.
+list, only running the UI code for the subset of widgets you see on screen.
 
 // [TODO] example image of virtualized scrolling
 
@@ -355,14 +355,15 @@ some_long_list :: proc() {
 
 So how is this solved for things that *aren't* long lists? Turns out, there aren't many cases
 where there are other bottlenecks. Looking at a standard web application, even one as
-featureful as Element, it turns out that there are only ~2400 DOM nodes (when tested via
+featureful as [Element](https://element.io/en), it turns out that there are only ~2400 DOM nodes (when tested via
 `document.getElementsByTagName('*').length`). This can easily be pared down further when we
 do basic visibility testing and notice that a substantial number of these nodes come from
-off-screen widgets. Regardless, this number of nodes still puts us within microseconds of
-UI build time, leaving plenty of idle time with which to save power.
+off-screen widgets. Regardless, this number of nodes still puts us within our microsecond level 
+budget of UI build time, leaving plenty of idle time with which to save power.
 > This does assume a 1-to-1 mapping of DOM node to immediate mode widgets. In practice, I've
   found I can reproduce similar experiences with fewer immediate mode widgets than DOM nodes.
 
+## Building the API
 how does an
 immediate mode widget know that it is in fact, a widget? Well, it turns out to be pretty simple,
 there are two procedures that everything starts with:
