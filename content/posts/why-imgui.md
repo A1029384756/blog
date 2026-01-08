@@ -127,6 +127,7 @@ the application or business logic is placed elsewhere. This is a result of a
 pattern that has commonly emerged in retained-mode UI frameworks called 
 "Model-View-Controller" (MVC).
 
+### MVC
 Model-view-controller at its core centers around creating an orderly way
 for graphical applications to interact with and manage their state. Each
 portion of the pattern has its own role:
@@ -271,9 +272,124 @@ if render_options_menu {
 }
 ```
 `options_menu` is only ever called if `render_options_menu` is `true`, meaning that
-it only ever renders itself (and any children) when the condition is met. This makes
-managing visibility dead simple as something can quite literally only be visible when
-the respective code actually runs.
+it only ever renders itself (and any children) when the condition is met. This results
+in visibility management of entire component trees being as simple as just... not running
+the code for that component.
+
+So where would `render_options_menu` come from? This *is* application state right? Well,
+the answer depends on what you're doing. Application state can be broken up into two
+categories: widget state and business state. Widget state is state that purely has to do
+with an individual widget or component. It has no need to be used by *any* other component
+and simply exists to provide a persistent element state. Such state would include: scrollbar
+data, certain textbox inputs, and state that only impacts its children elements. This is why
+React has `useState`, it gives the UI programmer a way to contain this local persistent state
+to somewhere that *isn't* globally accessible. Business state on the other hand gets stored like
+one would expect, as a top level struct (global or otherwise). This results in code that looks
+like this:
+```odin
+child_component :: proc(data: ^Data) {
+  local_state := use_state(3)
+  // do some stuff with the local state
+}
+
+main :: proc() {
+  data: Data
+  data_init(&data)
+
+  for !data.should_exit {
+    child_component(&data)
+  }
+}
+```
+### Misconceptions and Solutions
+So, now that I've roughed out the idea of this API where code is responsible for drawing widgets
+and listed some potential benefits, it's time to learn a little about how things work under the
+hood and address some concerns I have heard about how immediate mode scales. First, one misconception
+about immediate mode APIs is that the backing implementation can retain zero state. Although this may
+have been true in the past, most immediate mode frameworks now utilize extensive state retention 
+behind the scenes to enable even basic functionality like hover status. A clear example of this is
+React, which managed to implement an immediate mode framework over something that was designed
+explicitly as a retained API. This makes one thing very clear: immediate vs retained mode is almost
+purely an API decision and the implementations of each style can wildly differ.
+
+Does this mean that immediate mode frameworks should purely implement themselves on top of retained
+backends then? Not really. Instead, what many toolkit authors have found is that a hybrid approach
+is instead more desirable, where state is retained for reuse in future frames but the widget tree itself
+is only maintained for that frame. This often leads to another question: isn't it expensive to rebuild
+the widget tree every frame? The short answer is: it depends. The longer answer is, if the application
+is programmed well, the cost of building the tree and running layout can be measured in microseconds.
+The more expensive approach instead is the *rendering* of the UI and as such, frameworks that are more
+immediate in their *implementations* should instead strive to minimize their number of spurious rerenders.
+> An example of how to do this can be found in [this post](https://rxi.github.io/cached_software_rendering.html)
+  by rxi. Although it specifies software rendering, the approach can be expanded to hardware rendering as
+  well.
+
+The next obvious question is then: "how does one program an application well?" The answer here is simple:
+"do less". The amount of time spent building the widget tree per frame is a direct result of the amount
+of widget code running per frame. The goal here is to minimize the amount of widget code running, especially
+for widgets that cannot be seen. The most relevant example of this is for long lists. As expected, if a
+list is many thousands of items long, running UI code for each of those elements will be extremely expensive,
+especially since most of those elements will never be on screen. Instead, you should *virtualize* the 
+scrolling, only running the UI code for the subset of widgets you see on screen.
+
+// [TODO] example image of virtualized scrolling
+
+This is quite simple for fixed-height list items (of which these are the vast majority) and in cases where
+line height *is* variable, some basic basic heuristics of average height will be more than enough to provide
+reasonable scrolling precision. In practice this looks like:
+```odin
+calc_virtual_scroll :: proc(items: []Item, curr_idx: int) -> [2]int {}
+
+some_long_list :: proc() {
+  idx := use_state(0)
+  some_long_list: []Item
+  range := calc_virtual_scroll(some_long_list, idx^)
+  idx^ = range[0]
+  for item in some_long_list[range[0]:range[1]] {
+    render_item(item)
+  }
+}
+```
+> This was left specific for brevity but making a generic implementation of this is more
+  than possible.
+
+So how is this solved for things that *aren't* long lists? Turns out, there aren't many cases
+where there are other bottlenecks. Looking at a standard web application, even one as
+featureful as Element, it turns out that there are only ~2400 DOM nodes (when tested via
+`document.getElementsByTagName('*').length`). This can easily be pared down further when we
+do basic visibility testing and notice that a substantial number of these nodes come from
+off-screen widgets. Regardless, this number of nodes still puts us within microseconds of
+UI build time, leaving plenty of idle time with which to save power.
+> This does assume a 1-to-1 mapping of DOM node to immediate mode widgets. In practice, I've
+  found I can reproduce similar experiences with fewer immediate mode widgets than DOM nodes.
+
+how does an
+immediate mode widget know that it is in fact, a widget? Well, it turns out to be pretty simple,
+there are two procedures that everything starts with:
+```odin
+elem_open :: proc() {}
+elem_close :: proc() {}
+```
+
+Additionally, this way of using code to draw widgets allows for simpler languages to
+get the benefits of having component state be next to the rendered code:
+```odin
+if ui.elem() {
+  foo := ui.elem_use_state(512)
+  if ui.mouse_released(.Left) && ui.elem_hovered() {
+    foo^ += 1
+  } else if ui.mouse_released(.Right) && ui.elem_hovered() {
+    foo^ -= 1
+  }
+  ui.elem_set_text(fmt.tprintf("%v", foo^))
+  ui.elem_set_text_color({0, 0, 0, 255})
+  ui.elem_set_text_size(16)
+  ui.elem_set_text_font(fonts[.Roboto])
+}
+```
+Here, state is kept local to a specific element while having the interactions with
+and usage of the state right next to one another. This keeps behavior very local in
+many cases and 
 
 thinking in imguis
 
