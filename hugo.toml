@@ -51,3 +51,4 @@ weight = 30
 
 [markup.highlight]
 noClasses = false
+lineNos = true

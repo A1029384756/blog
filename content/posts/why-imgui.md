@@ -135,7 +135,7 @@ portion of the pattern has its own role:
 - View: interface the user sees/interacts with
 - Controller: code that updates the model upon input from the user
 
-// [TODO] Put image here
+![Depiction of MVC architecture](/why-imgui/mvc.svg#center)
 
 As you can see, MVC follows a circular pattern that maps well to the "event loop"
 that powers basically every application. One can:
@@ -330,24 +330,43 @@ of widget code running per frame. The goal here is to minimize the amount of wid
 for widgets that cannot be seen. The most relevant example of this is for long lists. As expected, if a
 list is many thousands of items long, running UI code for each of those elements will be extremely expensive,
 especially since most of those elements will never be on screen. Instead, you should *virtualize* the 
-list, only running the UI code for the subset of widgets you see on screen.
+list, only running the UI code for the subset of widgets you see on screen. This involves creating padding
+elements that are sized to the layout height of the elements that are not being rendered and dynamically
+adjusting the sizing of these padding elements as the scroll position changes.
 
-// [TODO] example image of virtualized scrolling
+![Depiction of virtual scrolling](/why-imgui/virtual-scroll.svg#center)
+> This is something that retained mode applications have to do as well.
 
 This is quite simple for fixed-height list items (of which these are the vast majority) and in cases where
 line height *is* variable, some basic basic heuristics of average height will be more than enough to provide
 reasonable scrolling precision. In practice this looks like:
 ```odin
 calc_virtual_scroll :: proc(items: []Item, curr_idx: int) -> [2]int {}
+calc_padding_size :: proc(item: Item, count: int) -> int {}
 
 some_long_list :: proc() {
   idx := use_state(0)
   some_long_list: []Item
   range := calc_virtual_scroll(some_long_list, idx^)
   idx^ = range[0]
+
+  render_padding(
+    calc_padding_size(
+      some_long_list[0],
+      range[0]
+    )
+  )
+
   for item in some_long_list[range[0]:range[1]] {
     render_item(item)
   }
+
+  render_padding(
+    calc_padding_size(
+      some_long_list[0],
+      len(some_long_list) - range[1]
+    )
+  )
 }
 ```
 > This was left specific for brevity but making a generic implementation of this is more
