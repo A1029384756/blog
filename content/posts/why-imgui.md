@@ -221,7 +221,7 @@ not want to use certain language features.
 # Immediate Mode
 I would be remiss to even mention IMGUI without first mentioning the video
 by Casey Muratori which contains a relatively early formal descriptions of using
-this this technique and can be found [here](https://caseymuratori.com/blog_0001).
+this technique and can be found [here](https://caseymuratori.com/blog_0001).
 
 The promise of IMGUI is very simple at its core:
 ```odin
