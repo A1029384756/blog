@@ -16,7 +16,7 @@ In the conversations I've had about UI, there has been much debate about
 immediate and retained mode, their differences, and what the "better"
 paradigm is for different applications. During these discussions, I've often
 seen the term "immediate mode" used to define a very specific kind of UI
-paradigm that doesn't reflect the implementations seen in the wild. There
+implementation that doesn't reflect what is seen in the wild. There
 are also many misconceptions about what immediate and retained mode even mean
 and as a result, some false conclusions drawn about the viability of using
 them in different scenarios. Before we can discuss each paradigm
@@ -220,7 +220,7 @@ not want to use certain language features.
 
 # Immediate Mode
 I would be remiss to even mention IMGUI without first mentioning the video
-by Casey Muratori which contains one of the earliest formal descriptions of using
+by Casey Muratori which contains a relatively early formal descriptions of using
 this this technique and can be found [here](https://caseymuratori.com/blog_0001).
 
 The promise of IMGUI is very simple at its core:
