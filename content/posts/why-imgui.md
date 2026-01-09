@@ -218,7 +218,7 @@ trickier and is overall harder to work with. As a result, alternative solutions 
 to be explored to reduce the complexity of implementation and usage for those who do
 not want to use certain language features.
 
-# IMGUI
+# Immediate Mode
 I would be remiss to even mention IMGUI without first mentioning the video
 by Casey Muratori which contains one of the earliest formal descriptions of using
 this this technique and can be found [here](https://caseymuratori.com/blog_0001).
