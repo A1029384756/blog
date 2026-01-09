@@ -12,14 +12,14 @@ tags:
   less syntactic noise.
 
 # Introduction
-In my conversations I've had about UI, there has been much debate about
+In the conversations I've had about UI, there has been much debate about
 immediate and retained mode, their differences, and what the "better"
 paradigm is for different applications. During these discussions, I've often
 seen the term "immediate mode" used to define a very specific kind of UI
 paradigm that doesn't reflect the implementations seen in the wild. There
 are also many misconceptions about what immediate and retained mode even mean
 and as a result, some false conclusions drawn about the viability of using
-different paradigms in different scenarios. Before we can discuss each paradigm
+them in different scenarios. Before we can discuss each paradigm
 in depth though, we must first learn what each paradigm is and what makes them
 tick.
 
@@ -34,7 +34,7 @@ made that make use of this style. To name a few:
 - Many more...
 
 These toolkits alone power a large portion of graphical software and
-for good reason; the tooling is very mature, reference material is abundant,
+for good reason: the tooling is very mature, reference material is abundant,
 and the "object model" is logically very easy to grasp for many people,
 where a widget maps to an "object" with its own set of properties and
 actions.
@@ -131,8 +131,8 @@ pattern that has commonly emerged in retained-mode UI frameworks called
 Model-view-controller at its core centers around creating an orderly way
 for graphical applications to interact with and manage their state. Each
 portion of the pattern has its own role:
-- Model: the application state
-- View: the interface the user sees/interacts with
+- Model: application state
+- View: interface the user sees/interacts with
 - Controller: code that updates the model upon input from the user
 
 // [TODO] Put image here
@@ -212,7 +212,7 @@ heavy runtime:
 QT and WinUI also have official C++ APIs but they make extensive use of destructors
 which are not part of every language. Those without them then need to manually
 delete each widget as it goes off-screen. Additionally, these APIs end up splitting
-the code up more again, reducing the locality of behavior to an unpleasant degree.
+up the code again, reducing the locality of behavior to an unpleasant degree.
 This splitting ends up resulting in a callback-heavy API which makes state management
 trickier and is overall harder to work with. As a result, alternative solutions need
 to be explored to reduce the complexity of implementation and usage for those who do
@@ -280,7 +280,7 @@ So where would `render_options_menu` come from? This *is* application state righ
 the answer depends on what you're doing. Application state can be broken up into two
 categories: widget state and business state. Widget state is state that purely has to do
 with an individual widget or component. It has no need to be used by *any* other component
-and simply exists to provide a persistent element state. Such state would include: scrollbar
+and simply exists to provide persistent element state. Such state would include: scrollbar
 data, certain textbox inputs, and state that only impacts its children elements. This is why
 React has `useState`, it gives the UI programmer a way to contain this local persistent state
 to somewhere that *isn't* globally accessible. Business state on the other hand gets stored like
@@ -325,7 +325,7 @@ immediate in their *implementations* should instead strive to minimize their num
   well.
 
 The next obvious question is then: "how does one program an application well?" The answer here is simple:
-"do less". The amount of time spent building the widget tree per frame is a direct result of the amount
+"do less". The amount of time spent building the widget tree per frame is directly correlated with the amount
 of widget code running per frame. The goal here is to minimize the amount of widget code running, especially
 for widgets that cannot be seen. The most relevant example of this is for long lists. As expected, if a
 list is many thousands of items long, running UI code for each of those elements will be extremely expensive,
@@ -380,7 +380,7 @@ elem_open()
 // do widget stuff
 elem_close()
 ```
-and since we're using Odin in this case, we can even do a little trick to avoid having to
+and since we're using Odin, we can even do a little trick to avoid having to
 remember to close each element (though this isn't strictly required):
 ```odin
 // this runs `elem_close` at the end of 
@@ -421,7 +421,7 @@ if elem() {
 Notice that widget was trivially formed as a composition of base elements with
 no special data organization required. It simply emerges from however the widgets
 are combined together. This is extremely powerful as it gives the consumer of the
-UI abstraction the same ability to craft custom widgets as the library itself 
+UI library the same ability to craft custom widgets as the library itself 
 (assuming it offers a set of prebuilt widgets).
 
 So how would we package this up into a reusable component? Well, turns out that's
@@ -443,7 +443,7 @@ button :: proc(text: string, bg, fg: Color, font: Font) -> (clicked: bool) {
 }
 ```
 > I would almost never actually have widgets return a `bool` and would instead prefer
-  returning a bit set holding all actions taken upon them
+  returning a bit set holding all actions taken upon them.
 
 This also makes making specific variants of widgets quite simple as a widget like 
 `orange_button` can simply be a wrapper around `button`:
@@ -494,9 +494,9 @@ This is simple overall but there's one thing "wrong" with this. As it stands, th
 component is not reusable since the `counter` is stored in static memory. This means
 that if we packaged this code as-is up into a procedure, it would result in the counter
 state being shared across all instances of the component. To get around this, there are
-a few options as discussed earlier. In some cases (and potentially this one), there are
-cases where it would make sense to pass the counter by pointer into the component and
-operate upon that. The actual value can then be stored in application state:
+a few options as discussed earlier. In some cases (and potentially this one), 
+it would make sense to pass the counter by pointer into the component and
+operate upon that. The actual value can then be stored in business state:
 ```odin
 counter :: proc(count: ^int) {}
 
