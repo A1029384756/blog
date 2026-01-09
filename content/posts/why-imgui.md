@@ -7,11 +7,11 @@ tags:
   - Programming
 ---
 
-> Authors note: The sample code in this article will sometimes be modified
+> Authors note: The sample code in this post will sometimes be modified
   to be less "correct" in favor of brevity to better convey ideas with
   less syntactic noise.
 
-## Introduction
+# Introduction
 In my conversations I've had about UI, there has been much debate about
 immediate and retained mode, their differences, and what the "better"
 paradigm is for different applications. During these discussions, I've often
@@ -23,7 +23,7 @@ different paradigms in different scenarios. Before we can discuss each paradigm
 in depth though, we must first learn what each paradigm is and what makes them
 tick.
 
-## Retained Mode
+# Retained Mode
 To start, retained mode is the more widely known and recognized of the two
 paradigms with a very rich history. Many widely used UI toolkits have been
 made that make use of this style. To name a few:
@@ -127,7 +127,7 @@ the application or business logic is placed elsewhere. This is a result of a
 pattern that has commonly emerged in retained-mode UI frameworks called 
 "Model-View-Controller" (MVC).
 
-### MVC
+## MVC
 Model-view-controller at its core centers around creating an orderly way
 for graphical applications to interact with and manage their state. Each
 portion of the pattern has its own role:
@@ -218,7 +218,7 @@ trickier and is overall harder to work with. As a result, alternative solutions 
 to be explored to reduce the complexity of implementation and usage for those who do
 not want to use certain language features.
 
-## IMGUI
+# IMGUI
 I would be remiss to even mention IMGUI without first mentioning the video
 by Casey Muratori which contains one of the earliest formal descriptions of using
 this this technique and can be found [here](https://caseymuratori.com/blog_0001).
@@ -301,7 +301,7 @@ main :: proc() {
   }
 }
 ```
-### Misconceptions and Solutions
+## Misconceptions and Solutions
 So, now that I've roughed out the idea of this API where code is responsible for drawing widgets
 and listed some potential benefits, it's time to learn a little about how things work under the
 hood and address some concerns I have heard about how immediate mode scales. First, one misconception
@@ -363,35 +363,193 @@ budget of UI build time, leaving plenty of idle time with which to save power.
 > This does assume a 1-to-1 mapping of DOM node to immediate mode widgets. In practice, I've
   found I can reproduce similar experiences with fewer immediate mode widgets than DOM nodes.
 
-## Building the API
-how does an
-immediate mode widget know that it is in fact, a widget? Well, it turns out to be pretty simple,
-there are two procedures that everything starts with:
+# Building the API
+So now that we have an idea of how an immediate style api would work and have addressed some of 
+the scaling concerns that are often brought up, how do we get the purported benefits of this
+style of programming? Well, it turns out to be pretty simple, there are two procedures that 
+everything starts with:
 ```odin
 elem_open :: proc() {}
 elem_close :: proc() {}
 ```
 
-Additionally, this way of using code to draw widgets allows for simpler languages to
-get the benefits of having component state be next to the rendered code:
+These procedures are the backbone of how immediate mode works. In this case, a widget would
+follow this structure:
 ```odin
-if ui.elem() {
-  foo := ui.elem_use_state(512)
-  if ui.mouse_released(.Left) && ui.elem_hovered() {
-    foo^ += 1
-  } else if ui.mouse_released(.Right) && ui.elem_hovered() {
-    foo^ -= 1
-  }
-  ui.elem_set_text(fmt.tprintf("%v", foo^))
-  ui.elem_set_text_color({0, 0, 0, 255})
-  ui.elem_set_text_size(16)
-  ui.elem_set_text_font(fonts[.Roboto])
+elem_open()
+// do widget stuff
+elem_close()
+```
+and since we're using Odin in this case, we can even do a little trick to avoid having to
+remember to close each element (though this isn't strictly required):
+```odin
+// this runs `elem_close` at the end of 
+// of the created scope
+@(deferred_none = elem_close)
+elem :: proc() {
+  elem_open()
+}
+
+// usage
+if elem() {
+  // do widget stuff
 }
 ```
-Here, state is kept local to a specific element while having the interactions with
-and usage of the state right next to one another. This keeps behavior very local in
-many cases and 
+In this case, an `elem` is simply a single container/box that gets drawn to the screen
+and that can have a variety of different properties set on it. All more complex widgets
+(buttons, text boxes, etc.) can be created by combining these elements in various ways
+to form the desired on-screen widget.
 
-thinking in imguis
+For example, a *very* basic button (missing many normal interaction restrictions)
+would be structured as so:
+```odin
+clicked := false
+if elem() {
+  if mouse_released(.Left) && ui.elem_hovered() {
+    clicked = true
+  }
+  elem_set_color(WHITE)
+  elem_set_padding_all(16)
+  if elem() {
+    elem_set_text("Click me!")
+    elem_set_text_color(BLACK)
+    elem_set_text_size(16)
+    elem_set_text_font(fonts[.Roboto])
+  }
+}
+```
+Notice that widget was trivially formed as a composition of base elements with
+no special data organization required. It simply emerges from however the widgets
+are combined together. This is extremely powerful as it gives the consumer of the
+UI abstraction the same ability to craft custom widgets as the library itself 
+(assuming it offers a set of prebuilt widgets).
 
-conclusion
+So how would we package this up into a reusable component? Well, turns out that's
+pretty simple, we just make a procedure:
+```odin
+button :: proc(text: string, bg, fg: Color, font: Font) -> (clicked: bool) {
+  if mouse_released(.Left) && elem_hovered() {
+    clicked = true
+  }
+  elem_set_color(bg)
+  elem_set_padding_all(16)
+  if elem() {
+    elem_set_text(text)
+    elem_set_text_color(fg)
+    elem_set_text_size(16)
+    elem_set_text_font(font)
+  }
+  return
+}
+```
+> I would almost never actually have widgets return a `bool` and would instead prefer
+  returning a bit set holding all actions taken upon them
+
+This also makes making specific variants of widgets quite simple as a widget like 
+`orange_button` can simply be a wrapper around `button`:
+```odin
+orange_button :: proc(text: string) -> bool {
+  return button(text, ORANGE, BLACK)
+}
+```
+
+This removes the need to model the domain by class hierarchy and makes specializing
+components extremely simple.
+
+Let's go ahead and create the classic counter component now. To start, we likely need
+four elements:
+- Outer "holding" container
+- Decrement button
+- Text showing the counter value
+- Increment button
+
+These four elements would likely look like this in code:
+```odin
+if elem() {
+  @(static) counter := 0
+  if elem() {
+    if mouse_released(.Left) && elem_hovered() {
+      counter -= 1
+    }
+    elem_set_size_fixed_fixed(20, 20)
+  }
+  if elem() {
+    elem_set_text(fmt.tprintf("%d", counter))
+    elem_set_text_size(16)
+    elem_set_text_color(BLACK)
+  }
+  if elem() {
+    if mouse_released(.Left) && elem_hovered() {
+      counter += 1
+    }
+    elem_set_size_fixed_fixed(20, 20)
+  }
+}
+```
+> `fmt.tprintf` prints to a buffer backed by Odin's [temporary allocator](https://zylinski.se/posts/temporary-allocator-your-first-arena/),
+  allowing all allocations made on it to be freed in bulk at the end of the frame, extremely
+  useful for transient strings like this.
+
+This is simple overall but there's one thing "wrong" with this. As it stands, this
+component is not reusable since the `counter` is stored in static memory. This means
+that if we packaged this code as-is up into a procedure, it would result in the counter
+state being shared across all instances of the component. To get around this, there are
+a few options as discussed earlier. In some cases (and potentially this one), there are
+cases where it would make sense to pass the counter by pointer into the component and
+operate upon that. The actual value can then be stored in application state:
+```odin
+counter :: proc(count: ^int) {}
+
+count := 0
+counter(&count)
+```
+
+In other cases, this makes less sense and is where the `use_state` idea we brought up
+earlier would be useful. All that needs to be done is to replace the counter variable
+declaration with `counter := elem_use_state(0)` and update the uses of the `counter` 
+variable to indicate that they're dealing with a pointer now.
+
+This would give us the following code:
+```odin
+counter :: proc(initial_value := 0) {
+  if elem() {
+    counter := elem_use_state(initial_value)
+    if elem() {
+      if mouse_released(.Left) && elem_hovered() {
+        counter^ -= 1
+      }
+      elem_set_size_fixed_fixed(20, 20)
+    }
+    if elem() {
+      elem_set_text(fmt.tprintf("%d", counter))
+      elem_set_text_size(16)
+      elem_set_text_color(BLACK)
+    }
+    if elem() {
+      if mouse_released(.Left) && elem_hovered() {
+        counter^ += 1
+      }
+      elem_set_size_fixed_fixed(20, 20)
+    }
+  }
+}
+
+counter()
+counter(512)
+```
+
+As can be seen, we once again have arrived at a relatively declarative API
+where element declaration and logic are located *next* to one another. We
+also still have the freedom to structure our state mutations to be similar
+to that of the Elm Architecture by having actions push to a dynamic array
+of events that gets processed separately, this is however, outside the scope
+of this post.
+
+# Conclusion
+There are a number of implementation details and other features that I have
+had to leave out for brevity. Things like animations, implementation of the
+API, and more. What can be seen though is the ease with which immediate style 
+APIs allow for programmers to build custom components, localize their state
+mutations, and declaratively specify their UI without using complex language
+features. This leads to a paradigm that is both powerful, portable, and
+relatively language agnostic.
